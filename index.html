@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <title>Route Animator – auto + caravan</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1318">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -73,6 +78,10 @@ button.on{background:#3d2f12;border-color:var(--acc);color:var(--acc2)}
   #side{overflow:visible;border-right:none}
   input[type=range]{width:120px}
 }
+#install{position:fixed;left:12px;right:12px;bottom:14px;max-width:460px;margin:0 auto;background:var(--panel);border:1px solid var(--acc);border-radius:14px;padding:14px;display:none;gap:12px;align-items:center;z-index:70;box-shadow:0 10px 40px #000a}
+#install img{width:52px;height:52px;border-radius:12px;flex:none}
+#install .t{flex:1}#install .t b{display:block;font-size:15px}#install .t span{color:var(--mut);font-size:12.5px}
+#install .b{display:flex;flex-direction:column;gap:6px}
 #toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#222b36;border:1px solid var(--line);padding:10px 16px;border-radius:9px;display:none;z-index:60;max-width:80vw}
 .tl{border-top:1px dashed var(--line);margin-top:10px;padding-top:8px;display:none}
 .maplibregl-ctrl-attrib{font-size:10px}
@@ -157,6 +166,7 @@ button.on{background:#3d2f12;border-color:var(--acc);color:var(--acc2)}
     <label class="row"><span>Formaat</span>
       <select data-k="format"><option value="1920x1080">1920×1080 (YouTube)</option><option value="3840x2160">3840×2160 (4K)</option><option value="1080x1920">1080×1920 (Shorts)</option><option value="1080x1080">1080×1080 (vierkant)</option></select></label>
     <label class="row"><span>Beelden/sec</span><select data-k="fps" data-num="1"><option value="25">25</option><option value="30">30</option><option value="50">50</option><option value="60">60</option></select></label>
+    <div class="btns"><button id="installBtn" style="display:none">📲 App installeren</button></div>
     <div class="btns"><button class="pri" id="exportBtn">🎬 Exporteer MP4</button><button id="saveProj">💾 Project opslaan</button></div>
     <div class="hint">De export rendert beeld voor beeld en wacht tot alle kaarttegels geladen zijn, dus het beeld blijft scherp. Laat dit tabblad tijdens het exporteren open en zichtbaar.</div>
   </div></details>
@@ -180,6 +190,7 @@ button.on{background:#3d2f12;border-color:var(--acc);color:var(--acc2)}
   <div class="btns"><button id="mCancel">Annuleren</button><a id="mDl" style="display:none"><button class="pri">⬇ Download MP4</button></a><button id="mClose" style="display:none">Sluiten</button></div>
 </div></div>
 <div id="toast"></div>
+<div id="install"><img src="icon-192.png" alt=""><div class="t"><b>Route Animator installeren?</b><span>Als app op je startscherm, zonder adresbalk.</span></div><div class="b"><button class="pri" id="instYes">Installeren</button><button id="instNo">Later</button></div></div>
 
 <script>
 'use strict';
@@ -1002,6 +1013,19 @@ $('exportBtn').onclick=async()=>{
     if(cancelExport){$('modal').style.display='none';toast('Export geannuleerd.');}
   }
 };
+
+/* ---------------- installeren als app ---------------- */
+let instEvt=null;
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();instEvt=e;$('installBtn').style.display='';
+  let later=0;try{later=+localStorage.getItem('ra-install-later')||0;}catch(x){}
+  if(Date.now()-later>3*864e5)setTimeout(()=>{$('install').style.display='flex';},1500);
+});
+async function doInstall(){$('install').style.display='none';if(!instEvt)return;instEvt.prompt();const r=await instEvt.userChoice;instEvt=null;if(r.outcome==='accepted'){$('installBtn').style.display='none';toast('App geïnstalleerd ✔');}}
+$('instYes').onclick=doInstall;$('installBtn').onclick=doInstall;
+$('instNo').onclick=()=>{$('install').style.display='none';try{localStorage.setItem('ra-install-later',Date.now());}catch(x){}};
+window.addEventListener('appinstalled',()=>{$('install').style.display='none';$('installBtn').style.display='none';});
 
 /* ---------------- start ---------------- */
 rebuildModels();
