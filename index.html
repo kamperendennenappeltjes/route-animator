@@ -888,7 +888,7 @@ function routeInfo(extra=''){
 }
 /* ---------- grensovergangen zoeken (land per punt via OpenStreetMap/Photon) ---------- */
 const ccCache=new Map();let borderSeq=0;
-const PROV=[['GR','groningen'],['FR','frysl'],['FR','friesland'],['DR','drenthe'],['OV','overijssel'],['GE','gelderland'],['UT','utrecht'],['NH','noord-holland'],['ZH','zuid-holland'],['ZE','zeeland'],['NB','noord-brabant'],['LI','limburg'],['FL','flevoland']];
+const PROV=[['GR','groningen'],['FR','frysl'],['FR','friesland'],['DR','drenthe'],['OV','overijssel'],['GE','gelderland'],['UT','utrecht'],['NH','noord-holland'],['NH','north holland'],['NH','noord holland'],['ZH','zuid-holland'],['ZH','south holland'],['ZH','zuid holland'],['ZE','zeeland'],['NB','noord-brabant'],['NB','north brabant'],['NB','noord brabant'],['NB','brabant'],['LI','limburg'],['FL','flevoland']];
 function provCode(state){const t=String(state||'').toLowerCase();const m=PROV.find(([c,n])=>t.includes(n));return m?m[0]:null;}
 async function placeAt(p){
   const key=p[0].toFixed(3)+','+p[1].toFixed(3);if(ccCache.has(key))return ccCache.get(key);
@@ -897,7 +897,7 @@ async function placeAt(p){
   ccCache.set(key,r);await sleep(110);return r;
 }
 /* regio = land, of 'NL-GE' enz. als provinciegrenzen aan staan */
-async function countryAt(p){const r=await placeAt(p);if(!r.cc)return null;if(S.provFlags&&r.cc==='NL'){const pc=provCode(r.state);if(pc)return 'NL-'+pc;}return r.cc;}
+async function countryAt(p){const r=await placeAt(p);if(!r.cc)return null;if(S.provFlags&&r.cc==='NL'){const pc=provCode(r.state);return pc?'NL-'+pc:null; /* provincie onbekend (bv. op een rivier): overslaan */}return r.cc;}
 async function detectBorders(){
   if(!R)return;const my=++borderSeq,RR=R,T=RR.total;
   const step=Math.max(3000,T/80);const samp=[];
@@ -1161,14 +1161,14 @@ $('autoZoom').onclick=()=>{
 };
 
 /* ---------------- opslaan / laden ---------------- */
-function projectData(){const st={};for(const k in DEFAULTS)st[k]=S[k];return {app:'routeanimator',v:1,stops:S.stops,routeSrc:S.routeSrc,route:R?R.coords:null,borders:R&&R.bordersDone?R.borders:null,bordersMode:R?!!R.bordersMode:false,settings:st};}
+function projectData(){const st={};for(const k in DEFAULTS)st[k]=S[k];return {app:'routeanimator',v:1,stops:S.stops,routeSrc:S.routeSrc,route:R?R.coords:null,borders:R&&R.bordersDone?R.borders:null,bordersMode:R?!!R.bordersMode:false,bordersVer:2,settings:st};}
 function save(){try{localStorage.setItem('routeanimator-v1',JSON.stringify(projectData()));}catch(e){}}
 function loadProject(j){
   Object.assign(S,j.settings||{});S.stops=j.stops||[];S.routeSrc=j.routeSrc||'stops';
   syncUI();renderStops();rebuildModels();
   if(map.isStyleLoaded())applyStyle();
   layoutStage();
-  if(j.route&&j.route.length>=2)setRoute(j.route,true,(!!j.bordersMode===!!S.provFlags&&j.borders)||null);else if(S.stops.length>=2)recalcRoute();else setRoute(null);
+  if(j.route&&j.route.length>=2)setRoute(j.route,true,(!!j.bordersMode===!!S.provFlags&&j.bordersVer===2&&j.borders)||null);else if(S.stops.length>=2)recalcRoute();else setRoute(null);
 }
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);}
 $('saveProj').onclick=()=>download(new Blob([JSON.stringify(projectData())],{type:'application/json'}),'route-project.json');
@@ -1263,7 +1263,7 @@ if(S.styleKind!==DEFAULTS.styleKind||S.styleKind==='hybrid')applyStyle();
 syncUI();renderStops();rebuildModels();
 map.once('load',()=>{
   layoutStage();
-  try{const j=JSON.parse(localStorage.getItem('routeanimator-v1')||'null');if(j&&j.route&&j.route.length>=2)setRoute(j.route,true,(!!j.bordersMode===!!S.provFlags&&j.borders)||null);}catch(e){}
+  try{const j=JSON.parse(localStorage.getItem('routeanimator-v1')||'null');if(j&&j.route&&j.route.length>=2)setRoute(j.route,true,(!!j.bordersMode===!!S.provFlags&&j.bordersVer===2&&j.borders)||null);}catch(e){}
 });
 layoutStage();
 </script>
